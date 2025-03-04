@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Contraseñas Seguras</title>
+    <style>
+        /* Variables CSS para modo claro/oscuro */
+        :root {
+            --bg-color: #f4f4f4;
+            --text-color: #333;
+            --card-bg: #fff;
+            --primary-color: #007bff;
+            --strength-weak: #ff4d4d;
+            --strength-medium: #ffa500;
+            --strength-strong: #ffeb3b;
+            --strength-very-strong: #00cc00;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --card-bg: #2a2a2a;
+        }
+
+        /* Estilos generales */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            transition: background 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary-color);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .password-display {
+            background: #f0f0f0;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            word-break: break-all;
+            margin-bottom: 1rem;
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+
+        .strength-bar {
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            transition: background 0.3s;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background: #0056b3;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+        }
+
+        .tips {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Responsividad */
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" aria-label="Cambiar tema">🌙</button>
+    <div class="container">
+        <h1>Generador de Contraseñas</h1>
+
+        <!-- Longitud de la contraseña -->
+        <div class="input-group">
+            <label for="length">Longitud (<span id="length-value">12</span>):</label>
+            <input type="range" id="length" min="8" max="50" value="12">
+        </div>
+
+        <!-- Opciones de caracteres -->
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="lowercase" checked> Minúsculas</label>
+            <label><input type="checkbox" id="uppercase" checked> Mayúsculas</label>
+            <label><input type="checkbox" id="numbers" checked> Números</label>
+            <label><input type="checkbox" id="symbols" checked> Símbolos</label>
+        </div>
+
+        <!-- Mostrar contraseña y fuerza -->
+        <div class="password-display" id="password">Haz clic en Generar</div>
+        <div class="strength-bar" id="strength-bar"></div>
+
+        <!-- Botones -->
+        <div class="buttons">
+            <button id="generate">Generar</button>
+            <button id="copy">Copiar</button>
+        </div>
+
+        <!-- Consejos de seguridad -->
+        <div class="tips">
+            <p><strong>Consejos:</strong></p>
+            <ul>
+                <li>No reutilices contraseñas.</li>
+                <li>Usa autenticación de dos factores (2FA).</li>
+                <li>Almacena tus contraseñas en un administrador seguro.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Elementos del DOM
+        const lengthInput = document.getElementById('length');
+        const lengthValue = document.getElementById('length-value');
+        const lowercase = document.getElementById('lowercase');
+        const uppercase = document.getElementById('uppercase');
+        const numbers = document.getElementById('numbers');
+        const symbols = document.getElementById('symbols');
+        const passwordDisplay = document.getElementById('password');
+        const strengthBar = document.getElementById('strength-bar');
+        const generateBtn = document.getElementById('generate');
+        const copyBtn = document.getElementById('copy');
+        const themeToggle = document.querySelector('.theme-toggle');
+
+        // Conjuntos de caracteres
+        const charSets = {
+            lowercase: 'abcdefghijklmnopqrstuvwxyz',
+            uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            numbers: '0123456789',
+            symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?'
+        };
+
+        // Actualizar valor de longitud
+        lengthInput.addEventListener('input', () => {
+            lengthValue.textContent = lengthInput.value;
+        });
+
+        // Generar contraseña
+        generateBtn.addEventListener('click', () => {
+            const length = parseInt(lengthInput.value);
+            let chars = '';
+            let password = '';
+
+            // Construir conjunto de caracteres según opciones seleccionadas
+            if (lowercase.checked) chars += charSets.lowercase;
+            if (uppercase.checked) chars += charSets.uppercase;
+            if (numbers.checked) chars += charSets.numbers;
+            if (symbols.checked) chars += charSets.symbols;
+
+            if (chars === '') {
+                passwordDisplay.textContent = 'Selecciona al menos una opción';
+                strengthBar.style.background = 'transparent';
+                return;
+            }
+
+            // Generar contraseña usando window.crypto para mayor seguridad
+            const array = new Uint8Array(length);
+            window.crypto.getRandomValues(array);
+            for (let i = 0; i < length; i++) {
+                password += chars[array[i] % chars.length];
+            }
+
+            passwordDisplay.textContent = password;
+            evaluateStrength(password);
+        });
+
+        // Evaluar fuerza de la contraseña
+        function evaluateStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) strength++;
+
+            switch (strength) {
+                case 1: case 2:
+                    strengthBar.style.background = 'var(--strength-weak)';
+                    break;
+                case 3:
+                    strengthBar.style.background = 'var(--strength-medium)';
+                    break;
+                case 4:
+                    strengthBar.style.background = 'var(--strength-strong)';
+                    break;
+                case 5:
+                    strengthBar.style.background = 'var(--strength-very-strong)';
+                    break;
+                default:
+                    strengthBar.style.background = 'transparent';
+            }
+        }
+
+        // Copiar al portapapeles
+        copyBtn.addEventListener('click', () => {
+            const text = passwordDisplay.textContent;
+            if (text && text !== 'Haz clic en Generar' && text !== 'Selecciona al menos una opción') {
+                navigator.clipboard.writeText(text).then(() => {
+                    copyBtn.textContent = '¡Copiado!';
+                    setTimeout(() => copyBtn.textContent = 'Copiar', 2000);
+                });
+            }
+        });
+
+        // Cambiar tema
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+            }
+        });
+    </script>
+</body>
+</html>
